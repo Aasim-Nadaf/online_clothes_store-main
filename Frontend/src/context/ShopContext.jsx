@@ -143,16 +143,25 @@ const ShopContextProvider = (props) => {
                 backendUrl + '/api/product/list'
             )
 
-            if (response.data.success) {
-                setProducts(response.data.products.reverse())
+            if (response.data.success && response.data.products.length > 0) {
+                // Check if backend products have real images (not placeholders)
+                const backendProducts = response.data.products;
+                const hasRealImages = backendProducts.some(p => 
+                    p.image && p.image[0] && !p.image[0].includes('placehold.co')
+                );
+
+                if (hasRealImages) {
+                    setProducts(backendProducts.reverse())
+                } else {
+                    // Backend has only placeholder images — use local catalog with real images
+                    setProducts(fallbackProducts)
+                }
             } else {
-                toast.error(response.data.message)
                 setProducts(fallbackProducts)
             }
 
         } catch (error) {
             console.log(error)
-            toast.error('Backend unavailable. Showing available clothes.')
             setProducts(fallbackProducts)
         }
 
