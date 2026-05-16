@@ -1,5 +1,7 @@
 import { v2 as cloudinary } from "cloudinary"
 import productModel from "../models/productModel.js"
+import path from 'path'
+import fs from 'fs'
 
 // function for add product
 const addProduct = async (req, res) => {
@@ -7,19 +9,37 @@ const addProduct = async (req, res) => {
 
         const { name, description, price, category, subCategory, sizes, bestseller } = req.body
 
-        const image1 = req.files.image1 && req.files.image1[0]
-        const image2 = req.files.image2 && req.files.image2[0]
-        const image3 = req.files.image3 && req.files.image3[0]
-        const image4 = req.files.image4 && req.files.image4[0]
+        const image1 = req.files?.image1 && req.files.image1[0]
+        const image2 = req.files?.image2 && req.files.image2[0]
+        const image3 = req.files?.image3 && req.files.image3[0]
+        const image4 = req.files?.image4 && req.files.image4[0]
 
         const images = [image1, image2, image3, image4].filter((item) => item !== undefined)
 
-        let imagesUrl = await Promise.all(
-            images.map(async (item) => {
-                let result = await cloudinary.uploader.upload(item.path, { resource_type: 'image' });
-                return result.secure_url
+        if (images.length === 0) {
+            return res.json({ success: false, message: "Please upload at least one image" })
+        }
+
+        let imagesUrl;
+
+        // Check if Cloudinary is configured
+        const cloudinaryConfigured = process.env.CLOUDINARY_NAME && process.env.CLOUDINARY_API_KEY && process.env.CLOUDINARY_SECRET_KEY
+
+        if (cloudinaryConfigured) {
+            imagesUrl = await Promise.all(
+                images.map(async (item) => {
+                    let result = await cloudinary.uploader.upload(item.path, { resource_type: 'image' });
+                    return result.secure_url
+                })
+            )
+        } else {
+            // For local development without Cloudinary, use placeholder image URLs
+            // based on the uploaded file names
+            imagesUrl = images.map((item) => {
+                return `https://placehold.co/400x500/eee/999?text=${encodeURIComponent(name || 'Product')}`
             })
-        )
+            console.log('Cloudinary not configured. Using placeholder images for product:', name)
+        }
 
         const productData = {
             name,

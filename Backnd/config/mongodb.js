@@ -1,7 +1,10 @@
 import mongoose from "mongoose";
+import { MongoMemoryServer } from "mongodb-memory-server";
+
+let mongoMemoryServer = null;
 
 const connectDB = async () => {
-  const uri = process.env.MONGODB_URI || process.env.MONGO_URI || "mongodb://127.0.0.1:27017/online_clothes_store";
+  const uri = process.env.MONGODB_URI || process.env.MONGO_URI || "";
 
   mongoose.connection.on("connected", () => {
     console.log("MongoDB Connected");
@@ -11,12 +14,30 @@ const connectDB = async () => {
     console.error("MongoDB connection error:", error.message);
   });
 
+  // Try to connect to the configured MongoDB URI first
+  if (uri) {
+    try {
+      await mongoose.connect(uri, {
+        dbName: "online_clothes_store",
+        serverSelectionTimeoutMS: 5000,
+      });
+      return;
+    } catch (error) {
+      console.warn("Could not connect to external MongoDB:", error.message);
+      console.log("Falling back to in-memory MongoDB server...");
+    }
+  }
+
+  // Fallback: use mongodb-memory-server for local development
   try {
-    await mongoose.connect(uri, {
+    mongoMemoryServer = await MongoMemoryServer.create();
+    const memUri = mongoMemoryServer.getUri();
+    console.log("In-memory MongoDB URI:", memUri);
+    await mongoose.connect(memUri, {
       dbName: "online_clothes_store",
     });
   } catch (error) {
-    console.error("MongoDB connection error:", error.message);
+    console.error("Failed to start in-memory MongoDB:", error.message);
     console.warn("Continuing to run the server without a successful DB connection.");
   }
 };

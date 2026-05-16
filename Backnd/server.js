@@ -2,10 +2,12 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/mongodb.js";
+import connectCloudinary from "./config/cloudinary.js";
 import userRouter from "./routes/userRoute.js";
 import productRouter from "./routes/productRoute.js";
 import cartRouter from "./routes/cartRoute.js";
 import orderRouter from "./routes/orderRoute.js";
+import seedDatabase from "./config/seed.js";
 
 dotenv.config();
 
@@ -24,7 +26,8 @@ app.get("/", (req, res) => {
   res.send("API Working");
 });
 
-connectDB();
+connectDB().then(() => seedDatabase());
+connectCloudinary();
 
 app.use((err, req, res, next) => {
   console.error(err);
